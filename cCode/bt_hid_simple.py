@@ -77,9 +77,7 @@ class HIDKeyboard:
     def wait_for_connection(self):
         """Wait for both control and interrupt connections"""
         print("\n[*] Waiting for HID connection...")
-        print("[*] Pair your Android device now:")
-        print("    Settings > Bluetooth > Search for devices")
-        print("    Select 'RPi5-Keyboard'\n")
+        
         
         # Accept control connection
         print("[*] Waiting for control channel...")
