@@ -135,13 +135,19 @@ class HIDKeyboard:
             self.press_key(KEYS[' '])
             time.sleep(0.5)
             
-            # Type chrome
-            print("[*] Typing 'chrome'...")
-            self.type_string("chrome")
-            time.sleep(0.5)
+            # Press Down arrow once
+            print("[*] Pressing Down arrow...")
+            self.press_key(0x51)  # Down arrow keycode
+            time.sleep(0.3)
             
-            # Press Enter
-            print("[*] Pressing Enter...")
+            # Press Right arrow four times
+            print("[*] Pressing Right arrow 4 times...")
+            for i in range(4):
+                self.press_key(0x4F)  # Right arrow keycode
+                time.sleep(0.3)
+            
+            # Press Enter to open the app
+            print("[*] Pressing Enter to open app...")
             self.press_key(KEYS['\n'])
             
             print("[+] Payload complete!")
