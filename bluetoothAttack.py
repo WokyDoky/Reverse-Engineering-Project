@@ -328,8 +328,8 @@ def execute_hardcoded_payload(client):
     log.info("Sending wakeup keys...")
     client.send_keypress(Key_Codes.SPACE, delay=0.5)
     time.sleep(2)
-    client.send_keypress(Key_Codes.ENTER, delay=0.5)
-    time.sleep(1)
+    # client.send_keypress(Key_Codes.ENTER, delay=0.5)
+    # time.sleep(1)
 
     # 2. Arrow DOWN
     log.info("Sending Arrow DOWN")
